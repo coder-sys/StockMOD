@@ -2,9 +2,24 @@ from flask import Flask, render_template, jsonify
 import pandas as pd
 import json
 import os
+import glob
 from main import main as run_analysis, load_history, summarize_market
 
 app = Flask(__name__)
+
+def get_latest_csv():
+    """Find the latest sentiment snapshot CSV file"""
+    csv_files = glob.glob("sentiment_snapshot_*.csv")
+    if not csv_files:
+        return None
+    return max(csv_files, key=os.path.getctime)
+
+def get_latest_history():
+    """Find the latest history JSON file"""
+    history_files = glob.glob("history_*.json")
+    if not history_files:
+        return None
+    return max(history_files, key=os.path.getctime)
 
 @app.route('/')
 def index():
@@ -13,9 +28,10 @@ def index():
         # Run the analysis to get fresh data
         run_analysis()
         
-        # Load the CSV data
-        if os.path.exists('sentiment_snapshot.csv'):
-            df = pd.read_csv('sentiment_snapshot.csv')
+        # Load the latest CSV data
+        latest_csv = get_latest_csv()
+        if latest_csv and os.path.exists(latest_csv):
+            df = pd.read_csv(latest_csv)
             
             # Clean the data - remove rows that might be part of the summary
             df = df.dropna(subset=['Ticker'])
@@ -47,12 +63,45 @@ def refresh_data():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
+@app.route('/api/files')
+def list_files():
+    """API endpoint to list available data files"""
+    try:
+        csv_files = glob.glob("sentiment_snapshot_*.csv")
+        history_files = glob.glob("history_*.json")
+        
+        csv_info = []
+        for f in sorted(csv_files, key=os.path.getctime, reverse=True):
+            csv_info.append({
+                "filename": f,
+                "created": os.path.getctime(f),
+                "size": os.path.getsize(f)
+            })
+        
+        history_info = []
+        for f in sorted(history_files, key=os.path.getctime, reverse=True):
+            history_info.append({
+                "filename": f,
+                "created": os.path.getctime(f),
+                "size": os.path.getsize(f)
+            })
+        
+        return jsonify({
+            "csv_files": csv_info,
+            "history_files": history_info,
+            "latest_csv": get_latest_csv(),
+            "latest_history": get_latest_history()
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 @app.route('/api/data')
 def get_data():
     """API endpoint to get current data as JSON"""
     try:
-        if os.path.exists('sentiment_snapshot.csv'):
-            df = pd.read_csv('sentiment_snapshot.csv')
+        latest_csv = get_latest_csv()
+        if latest_csv and os.path.exists(latest_csv):
+            df = pd.read_csv(latest_csv)
             df = df.dropna(subset=['Ticker'])
             summary = summarize_market(df)
             
@@ -70,8 +119,9 @@ def get_data():
 def ticker_detail(ticker):
     """Detail page for a specific ticker"""
     try:
-        if os.path.exists('sentiment_snapshot.csv'):
-            df = pd.read_csv('sentiment_snapshot.csv')
+        latest_csv = get_latest_csv()
+        if latest_csv and os.path.exists(latest_csv):
+            df = pd.read_csv(latest_csv)
             ticker_data = df[df['Ticker'] == f'${ticker.upper()}']
             
             if not ticker_data.empty:
