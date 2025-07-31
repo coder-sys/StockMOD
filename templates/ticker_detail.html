@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ticker }} - Stock Sentiment Analysis{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ ticker }} Sentiment Analysis</h1>
+    <a href="/" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+</div>
+
+<div class="row">
+    <!-- Main Metrics -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Sentiment Metrics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Average Sentiment</label>
+                            <div class="h4 {% if data.Avg_Sentiment > 0 %}sentiment-positive{% elif data.Avg_Sentiment < 0 %}sentiment-negative{% else %}sentiment-neutral{% endif %}">
+                                {{ "%.3f"|format(data.Avg_Sentiment) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Weighted Sentiment</label>
+                            <div class="h4 {% if data.Weighted_Sentiment > 0 %}sentiment-positive{% elif data.Weighted_Sentiment < 0 %}sentiment-negative{% else %}sentiment-neutral{% endif %}">
+                                {{ "%.3f"|format(data.Weighted_Sentiment) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Net Sentiment</label>
+                            <div class="h4 {% if data.Net_Sentiment > 0 %}sentiment-positive{% elif data.Net_Sentiment < 0 %}sentiment-negative{% else %}sentiment-neutral{% endif %}">
+                                {{ "%.3f"|format(data.Net_Sentiment) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Sentiment Volatility</label>
+                            <div class="h4 text-warning">
+                                {{ "%.3f"|format(data.Sentiment_Volatility) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity & Signal -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Activity & Signal</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Mentions</label>
+                            <div class="h4 text-primary">
+                                {{ data.Mentions }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Momentum</label>
+                            <div class="h4 {% if data.Momentum and data.Momentum > 0 %}sentiment-positive{% elif data.Momentum and data.Momentum < 0 %}sentiment-negative{% else %}sentiment-neutral{% endif %}">
+                                {% if data.Momentum is not none %}
+                                    {{ "%.3f"|format(data.Momentum) }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Signal</label>
+                            <div>
+                                <span class="badge signal-{{ data.Signal.lower() }} fs-5 px-3 py-2">
+                                    {{ data.Signal }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Source Subreddit</label>
+                            <div class="h5 text-info">
+                                {{ data.Subreddit }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Signal Interpretation -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Signal Interpretation</h5>
+            </div>
+            <div class="card-body">
+                {% if data.Signal == 'LONG' %}
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-arrow-up me-2"></i>BULLISH Signal</h6>
+                    <p class="mb-0">
+                        This ticker shows positive sentiment ({{ "%.3f"|format(data.Avg_Sentiment) }}) 
+                        {% if data.Momentum and data.Momentum > 1 %}
+                        with strong momentum ({{ "%.3f"|format(data.Momentum) }})
+                        {% endif %}
+                        across {{ data.Mentions }} mentions in {{ data.Subreddit }}.
+                    </p>
+                </div>
+                {% elif data.Signal == 'SHORT' %}
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-arrow-down me-2"></i>BEARISH Signal</h6>
+                    <p class="mb-0">
+                        This ticker shows negative sentiment ({{ "%.3f"|format(data.Avg_Sentiment) }}) 
+                        across {{ data.Mentions }} mentions in {{ data.Subreddit }}.
+                    </p>
+                </div>
+                {% else %}
+                <div class="alert alert-secondary">
+                    <h6><i class="fas fa-minus me-2"></i>NEUTRAL Signal</h6>
+                    <p class="mb-0">
+                        This ticker shows neutral sentiment ({{ "%.3f"|format(data.Avg_Sentiment) }}) 
+                        across {{ data.Mentions }} mentions in {{ data.Subreddit }}.
+                    </p>
+                </div>
+                {% endif %}
+
+                <div class="mt-3">
+                    <h6>Metrics Explanation:</h6>
+                    <ul class="mb-0">
+                        <li><strong>Average Sentiment:</strong> Overall sentiment from -1 (very negative) to +1 (very positive)</li>
+                        <li><strong>Weighted Sentiment:</strong> Sentiment weighted by post upvotes</li>
+                        <li><strong>Net Sentiment:</strong> Percentage of positive mentions minus percentage of negative mentions</li>
+                        <li><strong>Momentum:</strong> How current mentions compare to historical average</li>
+                        <li><strong>Volatility:</strong> Standard deviation of sentiment scores (higher = more mixed opinions)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Timestamp -->
+<div class="mt-3 text-center">
+    <small class="text-muted">
+        <i class="fas fa-clock me-1"></i>
+        Analysis timestamp: {{ data.timestamp }}
+    </small>
+</div>
+{% endblock %}

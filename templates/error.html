@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Error - Stock Sentiment Analysis{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+    <h2 class="text-danger">Oops! Something went wrong</h2>
+    <p class="text-muted fs-5">{{ error }}</p>
+    <div class="mt-4">
+        <a href="/" class="btn btn-primary me-2">
+            <i class="fas fa-home me-2"></i>Back to Dashboard
+        </a>
+        <button onclick="history.back()" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Go Back
+        </button>
+    </div>
+</div>
+{% endblock %}
